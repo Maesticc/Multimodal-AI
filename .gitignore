@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local config
+.env
+
+# Generated artifacts (rebuild with `python -m rag ingest`)
+index/
+index_sweep/
+logs/
+
+# Source PDFs are third-party papers; fetch them with scripts/download_data.*
+data/*.pdf
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

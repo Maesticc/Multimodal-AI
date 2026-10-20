@@ -1,0 +1,41 @@
+{
+  "description": "Provenance for the document collection. PDFs are publicly available research papers (from the assessment reading list) and are not redistributed in this repository; run scripts/download_data.ps1 or scripts/download_data.sh to fetch them.",
+  "documents": [
+    {
+      "doc_id": "mmvp",
+      "file": "Tong_Eyes_Wide_Shut_Exploring_the_Visual_Shortcomings_of_Multimodal_LLMs_CVPR_2024_paper.pdf",
+      "title": "Eyes Wide Shut? Exploring the Visual Shortcomings of Multimodal LLMs",
+      "authors": "Tong, Liu, Zhai, Ma, LeCun, Xie",
+      "venue": "CVPR 2024",
+      "url": "https://openaccess.thecvf.com/content/CVPR2024/papers/Tong_Eyes_Wide_Shut_Exploring_the_Visual_Shortcomings_of_Multimodal_LLMs_CVPR_2024_paper.pdf",
+      "version_note": "CVF Open Access version"
+    },
+    {
+      "doc_id": "hallusionbench",
+      "file": "Guan_HallusionBench_An_Advanced_Diagnostic_Suite_for_Entangled_Language_Hallucination_and_CVPR_2024_paper.pdf",
+      "title": "HallusionBench: An Advanced Diagnostic Suite for Entangled Language Hallucination and Visual Illusion in Large Vision-Language Models",
+      "authors": "Guan, Liu, Wu, Xian, Li, Liu, Wang, Chen, Huang, Yacoob, Manocha, Zhou",
+      "venue": "CVPR 2024",
+      "url": "https://openaccess.thecvf.com/content/CVPR2024/papers/Guan_HallusionBench_An_Advanced_Diagnostic_Suite_for_Entangled_Language_Hallucination_and_CVPR_2024_paper.pdf",
+      "version_note": "CVF Open Access version"
+    },
+    {
+      "doc_id": "rt2",
+      "file": "2307.15818v1_compressed.pdf",
+      "title": "RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control",
+      "authors": "Brohan et al. (Google DeepMind)",
+      "venue": "CoRL 2023 (arXiv preprint)",
+      "url": "https://arxiv.org/pdf/2307.15818v1",
+      "version_note": "arXiv v1 (28 Jul 2023), locally compressed; page numbering unchanged"
+    },
+    {
+      "doc_id": "diffusion_policy",
+      "file": "diffusion_policy_2023_compressed.pdf",
+      "title": "Diffusion Policy: Visuomotor Policy Learning via Action Diffusion",
+      "authors": "Chi, Feng, Du, Xu, Cousineau, Burchfiel, Song",
+      "venue": "RSS 2023",
+      "url": "https://diffusion-policy.cs.columbia.edu/diffusion_policy_2023.pdf",
+      "version_note": "16-page RSS 2023 version from the project page, locally compressed; page numbering unchanged"
+    }
+  ]
+}

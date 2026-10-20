@@ -1,0 +1,519 @@
+{
+  "page": [
+    {
+      "mode": "dense",
+      "level": "page",
+      "n": 15,
+      "summary": {
+        "hit@1": 0.6,
+        "hit@3": 0.8666666666666667,
+        "hit@5": 0.9333333333333333,
+        "mrr@5": 0.7244444444444444
+      },
+      "per_question": [
+        {
+          "id": "q01",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q02",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q03",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q04",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q05",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q06",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q07",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q08",
+          "type": "conceptual",
+          "rank": 5
+        },
+        {
+          "id": "q09",
+          "type": "paraphrase",
+          "rank": 1
+        },
+        {
+          "id": "q10",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q11",
+          "type": "factual",
+          "rank": 3
+        },
+        {
+          "id": "q12",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q13",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q14",
+          "type": "factual",
+          "rank": 3
+        },
+        {
+          "id": "q15",
+          "type": "cross-document",
+          "rank": null
+        }
+      ]
+    },
+    {
+      "mode": "bm25",
+      "level": "page",
+      "n": 15,
+      "summary": {
+        "hit@1": 0.5333333333333333,
+        "hit@3": 0.9333333333333333,
+        "hit@5": 1.0,
+        "mrr@5": 0.7166666666666667
+      },
+      "per_question": [
+        {
+          "id": "q01",
+          "type": "factual",
+          "rank": 3
+        },
+        {
+          "id": "q02",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q03",
+          "type": "factual",
+          "rank": 3
+        },
+        {
+          "id": "q04",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q05",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q06",
+          "type": "factual",
+          "rank": 3
+        },
+        {
+          "id": "q07",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q08",
+          "type": "conceptual",
+          "rank": 2
+        },
+        {
+          "id": "q09",
+          "type": "paraphrase",
+          "rank": 1
+        },
+        {
+          "id": "q10",
+          "type": "conceptual",
+          "rank": 2
+        },
+        {
+          "id": "q11",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q12",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q13",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q14",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q15",
+          "type": "cross-document",
+          "rank": 4
+        }
+      ]
+    },
+    {
+      "mode": "hybrid",
+      "level": "page",
+      "n": 15,
+      "summary": {
+        "hit@1": 0.5333333333333333,
+        "hit@3": 1.0,
+        "hit@5": 1.0,
+        "mrr@5": 0.7444444444444444
+      },
+      "per_question": [
+        {
+          "id": "q01",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q02",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q03",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q04",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q05",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q06",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q07",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q08",
+          "type": "conceptual",
+          "rank": 2
+        },
+        {
+          "id": "q09",
+          "type": "paraphrase",
+          "rank": 1
+        },
+        {
+          "id": "q10",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q11",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q12",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q13",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q14",
+          "type": "factual",
+          "rank": 3
+        },
+        {
+          "id": "q15",
+          "type": "cross-document",
+          "rank": 3
+        }
+      ]
+    }
+  ],
+  "chunk": [
+    {
+      "mode": "dense",
+      "level": "chunk",
+      "n": 14,
+      "summary": {
+        "hit@1": 0.5714285714285714,
+        "hit@3": 0.8571428571428571,
+        "hit@5": 0.8571428571428571,
+        "mrr@5": 0.7142857142857143
+      },
+      "per_question": [
+        {
+          "id": "q01",
+          "type": "factual",
+          "rank": null
+        },
+        {
+          "id": "q02",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q03",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q04",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q05",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q06",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q07",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q08",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q09",
+          "type": "paraphrase",
+          "rank": 1
+        },
+        {
+          "id": "q10",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q11",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q12",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q13",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q14",
+          "type": "factual",
+          "rank": null
+        }
+      ]
+    },
+    {
+      "mode": "bm25",
+      "level": "chunk",
+      "n": 14,
+      "summary": {
+        "hit@1": 0.5,
+        "hit@3": 0.7142857142857143,
+        "hit@5": 0.7857142857142857,
+        "mrr@5": 0.6130952380952381
+      },
+      "per_question": [
+        {
+          "id": "q01",
+          "type": "factual",
+          "rank": null
+        },
+        {
+          "id": "q02",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q03",
+          "type": "factual",
+          "rank": 4
+        },
+        {
+          "id": "q04",
+          "type": "factual",
+          "rank": null
+        },
+        {
+          "id": "q05",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q06",
+          "type": "factual",
+          "rank": 3
+        },
+        {
+          "id": "q07",
+          "type": "conceptual",
+          "rank": 2
+        },
+        {
+          "id": "q08",
+          "type": "conceptual",
+          "rank": 2
+        },
+        {
+          "id": "q09",
+          "type": "paraphrase",
+          "rank": 1
+        },
+        {
+          "id": "q10",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q11",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q12",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q13",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q14",
+          "type": "factual",
+          "rank": null
+        }
+      ]
+    },
+    {
+      "mode": "hybrid",
+      "level": "chunk",
+      "n": 14,
+      "summary": {
+        "hit@1": 0.42857142857142855,
+        "hit@3": 0.7857142857142857,
+        "hit@5": 0.8571428571428571,
+        "mrr@5": 0.6214285714285713
+      },
+      "per_question": [
+        {
+          "id": "q01",
+          "type": "factual",
+          "rank": null
+        },
+        {
+          "id": "q02",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q03",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q04",
+          "type": "factual",
+          "rank": 5
+        },
+        {
+          "id": "q05",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q06",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q07",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q08",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q09",
+          "type": "paraphrase",
+          "rank": 1
+        },
+        {
+          "id": "q10",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q11",
+          "type": "factual",
+          "rank": 1
+        },
+        {
+          "id": "q12",
+          "type": "factual",
+          "rank": 2
+        },
+        {
+          "id": "q13",
+          "type": "conceptual",
+          "rank": 1
+        },
+        {
+          "id": "q14",
+          "type": "factual",
+          "rank": null
+        }
+      ]
+    }
+  ]
+}

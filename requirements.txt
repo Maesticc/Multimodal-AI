@@ -1,0 +1,11 @@
+# Tested with Python 3.13.12 on Windows 11. Exact versions used for the saved outputs.
+pypdf==6.21.1
+chromadb==1.5.9
+sentence-transformers==6.1.0
+rank-bm25==0.2.2
+python-dotenv==1.2.4
+requests==2.34.2
+# Installed transitively; pinned for reproducibility (CPU build of torch is enough).
+torch==2.14.1
+transformers==5.20.2
+numpy==2.5.4

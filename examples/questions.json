@@ -1,0 +1,445 @@
+{
+  "description": "Hand-labelled questions. `relevant` lists the (doc_id, page) locations that contain the answer, found by reading the extracted chunks. `answer_must_contain` is a list of groups; the answer passes if it contains at least one string from every group (case-insensitive). An empty `relevant` list means the collection does not contain the answer and the system should abstain. `evidence_must_contain` defines chunk-level relevance independently of chunk ids: a retrieved chunk counts as evidence if it is from a labelled document and contains at least one string from every group, so the same labels work for any chunk size.",
+  "questions": [
+    {
+      "id": "q01",
+      "type": "factual",
+      "question": "How are CLIP-blind pairs selected in the MMVP benchmark, and what similarity thresholds are used?",
+      "relevant": [
+        {
+          "doc_id": "mmvp",
+          "page": 3
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "0.95"
+        ],
+        [
+          "0.6"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "0.95"
+        ],
+        [
+          "0.6"
+        ]
+      ]
+    },
+    {
+      "id": "q02",
+      "type": "factual",
+      "question": "How many visual patterns do the Eyes Wide Shut authors identify that CLIP struggles with?",
+      "relevant": [
+        {
+          "doc_id": "mmvp",
+          "page": 5
+        },
+        {
+          "doc_id": "mmvp",
+          "page": 1
+        },
+        {
+          "doc_id": "mmvp",
+          "page": 2
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "9",
+          "nine"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "9 visual patterns",
+          "nine visual patterns",
+          "nine patterns",
+          "9 patterns",
+          "nine prevalent"
+        ]
+      ]
+    },
+    {
+      "id": "q03",
+      "type": "factual",
+      "question": "How much does Interleaved Mixture-of-Features improve LLaVA on MMVP?",
+      "relevant": [
+        {
+          "doc_id": "mmvp",
+          "page": 7
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "10.7"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "10.7"
+        ]
+      ]
+    },
+    {
+      "id": "q04",
+      "type": "factual",
+      "question": "How many images and questions does HallusionBench contain?",
+      "relevant": [
+        {
+          "doc_id": "hallusionbench",
+          "page": 1
+        },
+        {
+          "doc_id": "hallusionbench",
+          "page": 3
+        },
+        {
+          "doc_id": "hallusionbench",
+          "page": 4
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "346"
+        ],
+        [
+          "1129",
+          "1,129"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "346"
+        ],
+        [
+          "1129"
+        ]
+      ]
+    },
+    {
+      "id": "q05",
+      "type": "factual",
+      "question": "What question-pair accuracy does GPT-4V achieve on HallusionBench?",
+      "relevant": [
+        {
+          "doc_id": "hallusionbench",
+          "page": 1
+        },
+        {
+          "doc_id": "hallusionbench",
+          "page": 2
+        },
+        {
+          "doc_id": "hallusionbench",
+          "page": 7
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "31.42"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "31.42"
+        ]
+      ]
+    },
+    {
+      "id": "q06",
+      "type": "factual",
+      "question": "How many questions are in the Visual Dependent and Visual Supplement categories of HallusionBench?",
+      "relevant": [
+        {
+          "doc_id": "hallusionbench",
+          "page": 4
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "591"
+        ],
+        [
+          "538"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "591"
+        ],
+        [
+          "538"
+        ]
+      ]
+    },
+    {
+      "id": "q07",
+      "type": "conceptual",
+      "question": "Which metrics does HallusionBench use to measure a model's yes/no bias?",
+      "relevant": [
+        {
+          "doc_id": "hallusionbench",
+          "page": 5
+        },
+        {
+          "doc_id": "hallusionbench",
+          "page": 7
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "Pct. Diff",
+          "Percentage Difference"
+        ],
+        [
+          "FP Ratio",
+          "False Positive"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "Pct. Diff",
+          "Percentage Difference"
+        ],
+        [
+          "FP Ratio",
+          "False Positive"
+        ]
+      ]
+    },
+    {
+      "id": "q08",
+      "type": "conceptual",
+      "question": "How does RT-2 represent robot actions so that a vision-language model can output them?",
+      "relevant": [
+        {
+          "doc_id": "rt2",
+          "page": 5
+        },
+        {
+          "doc_id": "rt2",
+          "page": 6
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "256"
+        ],
+        [
+          "token"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "256"
+        ],
+        [
+          "token"
+        ]
+      ]
+    },
+    {
+      "id": "q09",
+      "type": "paraphrase",
+      "question": "How fast can the biggest robot control model in the RT-2 paper run, and where is it executed?",
+      "relevant": [
+        {
+          "doc_id": "rt2",
+          "page": 6
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "1-3 Hz",
+          "1–3 Hz",
+          "1 to 3"
+        ],
+        [
+          "cloud",
+          "TPU"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "1-3 Hz"
+        ]
+      ]
+    },
+    {
+      "id": "q10",
+      "type": "conceptual",
+      "question": "What is the main limitation of RT-2 regarding the physical skills of the robot?",
+      "relevant": [
+        {
+          "doc_id": "rt2",
+          "page": 11
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "new motion",
+          "new skill",
+          "skills seen",
+          "distribution of skills"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "new motions",
+          "new skills",
+          "distribution of skills"
+        ]
+      ]
+    },
+    {
+      "id": "q11",
+      "type": "factual",
+      "question": "What average improvement does Diffusion Policy report over prior state-of-the-art methods, and across how many tasks?",
+      "relevant": [
+        {
+          "doc_id": "diffusion_policy",
+          "page": 1
+        },
+        {
+          "doc_id": "diffusion_policy",
+          "page": 2
+        },
+        {
+          "doc_id": "diffusion_policy",
+          "page": 6
+        },
+        {
+          "doc_id": "diffusion_policy",
+          "page": 7
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "46.9"
+        ],
+        [
+          "12"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "46.9"
+        ]
+      ]
+    },
+    {
+      "id": "q12",
+      "type": "factual",
+      "question": "How does Diffusion Policy speed up inference for real-time control, and what latency does it reach?",
+      "relevant": [
+        {
+          "doc_id": "diffusion_policy",
+          "page": 4
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "DDIM"
+        ],
+        [
+          "0.1"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "DDIM"
+        ],
+        [
+          "0.1s",
+          "0.1 s"
+        ]
+      ]
+    },
+    {
+      "id": "q13",
+      "type": "conceptual",
+      "question": "What limitations of Diffusion Policy do the authors acknowledge?",
+      "relevant": [
+        {
+          "doc_id": "diffusion_policy",
+          "page": 11
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "latency",
+          "computational"
+        ],
+        [
+          "behavior cloning",
+          "demonstration"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "inference latency",
+          "computational costs"
+        ],
+        [
+          "behavior cloning"
+        ]
+      ]
+    },
+    {
+      "id": "q14",
+      "type": "factual",
+      "question": "Which simulation benchmarks are used to evaluate Diffusion Policy?",
+      "relevant": [
+        {
+          "doc_id": "diffusion_policy",
+          "page": 6
+        }
+      ],
+      "answer_must_contain": [
+        [
+          "Robomimic"
+        ]
+      ],
+      "evidence_must_contain": [
+        [
+          "Robomimic"
+        ],
+        [
+          "Push-T"
+        ]
+      ]
+    },
+    {
+      "id": "q15",
+      "type": "cross-document",
+      "question": "Both MMVP and HallusionBench evaluate GPT-4V. What weakness does each paper find?",
+      "relevant": [
+        {
+          "doc_id": "mmvp"
+        },
+        {
+          "doc_id": "hallusionbench"
+        }
+      ],
+      "require_all_docs": true,
+      "answer_must_contain": []
+    },
+    {
+      "id": "q16",
+      "type": "unanswerable",
+      "question": "What learning rate and batch size were used to train GPT-4V?",
+      "relevant": [],
+      "answer_must_contain": []
+    },
+    {
+      "id": "q17",
+      "type": "unanswerable",
+      "question": "What success rate does RT-2 achieve on the Open X-Embodiment benchmark?",
+      "relevant": [],
+      "answer_must_contain": []
+    }
+  ]
+}
