@@ -4,10 +4,6 @@ Technical Assessment, Option 1 (RAG Implementation). AI Research Engineer Intern
 
 A local Retrieval-Augmented Generation system that answers questions about four research papers and cites the document, page and section of the evidence it used. It runs fully offline after setup: Ollama provides the LLM, sentence-transformers the embeddings and ChromaDB the vector store. No API keys are required.
 
-```
-python -m rag ask "How does RT-2 represent robot actions?" --show-context
-```
-
 ## 1. Document collection
 
 | doc_id | Paper | Venue | Pages | Chunks |
@@ -18,7 +14,7 @@ python -m rag ask "How does RT-2 represent robot actions?" --show-context
 | `diffusion_policy` | Diffusion Policy: Visuomotor Policy Learning via Action Diffusion (Chi et al.) | RSS 2023 | 16 | 102 |
 | **Total** | 4 PDFs, ~5.5 MB, 64 pages, ~229k characters indexed | | **64** | **301** |
 
-- **Source and permission:** all four papers are on the assessment reading list (P1, P5, P6, P8) and are publicly available from CVF Open Access, arXiv and the project page. URLs and versions are in [`data/sources.json`](data/sources.json). The PDFs are **not committed**. `python scripts/download_data.py` fetches them. I checked that the downloaded files match the copies I indexed page for page (same page count and the same extracted text at the start of every page), so page citations stay valid.
+- **Source and permission:** all four papers are on the assessment reading list (P1, P5, P6, P8) and are publicly available from CVF Open Access, arXiv and the project page. URLs and versions are in [`data/sources.json`](data/sources.json). The PDFs are **not committed**; the script `scripts/download_data.py` fetches them. I checked that the downloaded files match the copies I indexed page for page (same page count and the same extracted text at the start of every page), so page citations stay valid.
 - **Why this collection:** two multimodal benchmark papers (MMVP and HallusionBench, which both evaluate GPT-4V) and two embodied-AI policy papers (RT-2 and Diffusion Policy). The overlap in vocabulary (diffusion, VLMs, benchmarks, "tokens", "Hz") makes retrieval non-trivial, and it allows cross-document questions.
 - **File type:** born-digital PDF (text layer, no OCR needed). Figures, tables and equations come out only as flattened text (see Limitations).
 
@@ -97,41 +93,31 @@ Any Ollama model can be used by changing `RAG_LLM_MODEL` (for example `qwen2.5:3
 
 **Requirements:** Python 3.11+ (tested on 3.13.12, Windows 11), ~3 GB disk for the model, ~4 GB RAM. A GPU is optional: on CPU only, Ollama still works, just slower (expect tens of seconds per answer). Tested on an NVIDIA RTX 3050 Laptop GPU with 4 GB.
 
-```bash
-# 1. Python environment
-python -m venv .venv
-.venv\Scripts\activate            # Windows   (Linux/macOS: source .venv/bin/activate)
-pip install -r requirements.txt
+Setup takes five steps:
 
-# 2. LLM: install Ollama from https://ollama.com/download, then
-ollama pull llama3.2:3b
-
-# 3. Data (skip if the PDFs are already in data/)
-python scripts/download_data.py
-
-# 4. Optional configuration: defaults work without a .env
-copy .env.example .env            # Linux/macOS: cp .env.example .env
-
-# 5. Build the index (~2 min on CPU; downloads the embedding model on first run)
-python -m rag ingest
-```
+1. Create a Python virtual environment and install the pinned packages from [`requirements.txt`](requirements.txt).
+2. Install Ollama from [ollama.com/download](https://ollama.com/download) and pull the `llama3.2:3b` model.
+3. Put the four PDFs in `data/`, or let `scripts/download_data.py` download them.
+4. Optionally copy [`.env.example`](.env.example) to `.env` to change settings. The defaults work without it.
+5. Build the index with the `ingest` command of the `rag` package. It takes ~2 minutes on CPU, and the embedding model is downloaded on the first run.
 
 ## 5. Usage
 
-```bash
-python -m rag ask "What limitations of Diffusion Policy do the authors acknowledge?"
-python -m rag ask "..." --show-context        # also print the retrieved passages
-python -m rag ask "..." --mode dense --top-k 8 # override retrieval for one query
-python -m rag ask "..." --json                 # full record: prompt, scores, timings
-python -m rag retrieve "..."                   # retrieval only, no LLM
-python -m rag chat                             # interactive
-python -m rag info                             # settings, index manifest, exact model/digest
-python -m rag eval                             # retrieval evaluation (dense vs BM25 vs hybrid)
-python -m rag examples                         # regenerate examples/outputs/answers.md
-python scripts/chunk_sweep.py 500 1000 1500    # chunk-size experiment
-```
+The `rag` package is run as a Python module and has these commands:
 
-Every `ask` is appended to `logs/queries.jsonl` with the full prompt, all retrieved passages and their scores, and the token counts and latency.
+| Command | What it does |
+|---|---|
+| `ingest` | Builds the vector index from `data/*.pdf` |
+| `ask` | Answers one question with cited sources. Options can show the retrieved passages, switch the retrieval mode, change `top_k` or print the full JSON record |
+| `retrieve` | Retrieval only, without the LLM |
+| `chat` | Interactive question loop |
+| `info` | Shows the settings, the index manifest and the exact model and digest |
+| `eval` | Retrieval evaluation: dense vs BM25 vs hybrid |
+| `examples` | Regenerates `examples/outputs/answers.md` |
+
+The chunk-size experiment is in `scripts/chunk_sweep.py`.
+
+Every question is appended to `logs/queries.jsonl`, together with the full prompt, all retrieved passages and their scores, and the token counts and latency.
 
 Configuration lives in [`.env.example`](.env.example). It covers paths, chunk size and overlap, embedding model and device, retrieval mode, `top_k`, `candidate_k`, `rrf_k`, the LLM provider and model, the Ollama URL, temperature, seed, `num_ctx`, the context character budget and the answer token limit.
 
