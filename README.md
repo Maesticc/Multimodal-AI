@@ -89,6 +89,7 @@ Question
 | [`rag/evaluate.py`](rag/evaluate.py) | Evaluates retrieval against labelled questions. |
 | [`rag/examples.py`](rag/examples.py) | Regenerates the saved example outputs. |
 | [`rag/cli.py`](rag/cli.py) | Provides the command-line interface. |
+| [`app.py`](app.py) | Optional Streamlit interface on top of the same pipeline. |
 | [`scripts/download_data.py`](scripts/download_data.py) | Downloads the source PDFs. |
 | [`scripts/chunk_sweep.py`](scripts/chunk_sweep.py) | Runs the chunk-size experiment. |
 
@@ -136,7 +137,7 @@ through `--show-context`, the `retrieve` command, and
   headings, Roman numerals, appendix letters, and headings such as
   `Abstract` and `Limitations`. It filters common false positives and
   repairs some headings extracted with spaced small caps. The detected
-  sections were checked manually for these four papers.
+  sections were inspected for these four papers only.
 - **References:** Text after a `References` heading is skipped until
   an appendix heading is found. Set `RAG_INCLUDE_REFERENCES=true` to
   include references.
@@ -272,6 +273,11 @@ including chunk size and overlap, embedding model and device, retrieval
 mode, candidate counts, RRF settings, Ollama URL, temperature, seed,
 context length, character budget, and answer token limit.
 
+An optional web interface is available with `streamlit run app.py`. It
+calls the same `RAGPipeline.ask()` as the CLI and shows the answer,
+cited sources, retrieved passages with their scores, and the prompt. It
+runs on the local machine and has no authentication.
+
 ## Evaluation
 
 Saved outputs are available in [`examples/outputs/`](examples/outputs/):
@@ -290,7 +296,7 @@ Saved outputs are available in [`examples/outputs/`](examples/outputs/):
 ### Test questions
 
 [`examples/questions.json`](examples/questions.json) contains 17
-manually written questions: nine factual, four conceptual, one
+hand-labelled questions: nine factual, four conceptual, one
 paraphrased, one cross-document, and two unanswerable. For answerable
 questions, the evaluation records the pages containing the answer and
 the evidence strings needed to verify it. A chunk counts as evidence
@@ -331,7 +337,8 @@ question changes Hit@k by roughly 0.07.
 Both chunk-level misses (`q01` and `q14`) involve content dominated by
 table or figure text. For `q14`, the RoboMimic chunk is mostly flattened
 task-table content and ranked 20th with hybrid retrieval and 55th with
-dense retrieval. Raising `top_k` to 10 recovered `q01` at rank 9, but
+dense retrieval (measured with a 60-candidate pool; with the default 20
+candidates per retriever, dense retrieval does not return it at all). Raising `top_k` to 10 recovered `q01` at rank 9, but
 did not recover `q14`.
 
 ### Answer review
@@ -423,12 +430,12 @@ whether that size improves answer quality.
 - **Heading detection:** The heading rules were checked on these four
   papers. Other PDF layouts may require changes to the detection
   patterns.
-- **Small evaluation set:** There are 15 answerable questions,
-  labelled by one person. The metrics are useful for identifying
+- **Small evaluation set:** There are 15 answerable questions with a
+  single set of labels and no independent annotator. The metrics are useful for identifying
   possible trends, but the differences are not statistically
   conclusive.
-- **Manual answer review:** Answer correctness was reviewed by one
-  person. The automatic evaluation uses string matching and cannot
+- **Manual answer review:** Answer correctness was judged in a single
+  manual review pass, without a second reviewer. The automatic evaluation uses string matching and cannot
   reliably detect unsupported claims.
 - **English and single-turn use:** The current interface is an
   English-language command-line tool without conversation memory.
@@ -452,6 +459,17 @@ whether that size improves answer quality.
 5. **Expand the evaluation set.** Add more independently written
    questions so that small differences in Hit@k are easier to
    interpret.
+
+## How this project was built
+
+<!-- TODO: edit this so it describes what you actually did before submitting. -->
+I built this project with help from an AI coding assistant (Kiro). The
+assistant drafted most of the code, the evaluation questions and their
+labels, the first answer review in `manual_review.md`, and the first
+version of this README. I chose the task, the papers, and the hardware
+setup, and the experiments were run on my machine. I personally checked
+[fill in: e.g. the labels in `questions.json`, the verdicts in
+`manual_review.md`, the final README text].
 
 ## References
 
