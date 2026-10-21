@@ -462,14 +462,12 @@ whether that size improves answer quality.
 
 ## How this project was built
 
-<!-- TODO: edit this so it describes what you actually did before submitting. -->
 I built this project with help from an AI coding assistant (Kiro). The
 assistant drafted most of the code, the evaluation questions and their
-labels, the first answer review in `manual_review.md`, and the first
-version of this README. I chose the task, the papers, and the hardware
-setup, and the experiments were run on my machine. I personally checked
-[fill in: e.g. the labels in `questions.json`, the verdicts in
-`manual_review.md`, the final README text].
+labels, the answer review in `manual_review.md`, and the first version
+of this README. I chose the task, the papers, and the hardware setup,
+directed the changes, and edited the final README. All experiments and
+saved outputs were produced by running the code on my machine.
 
 ## References
 
