@@ -90,6 +90,7 @@ Question
 | [`rag/examples.py`](rag/examples.py) | Regenerates the saved example outputs. |
 | [`rag/cli.py`](rag/cli.py) | Provides the command-line interface. |
 | [`app.py`](app.py) | Optional Streamlit interface on top of the same pipeline. |
+| [`run_app.bat`](run_app.bat) | Starts `app.py` with the project's `.venv` Python (Windows). |
 | [`scripts/download_data.py`](scripts/download_data.py) | Downloads the source PDFs. |
 | [`scripts/chunk_sweep.py`](scripts/chunk_sweep.py) | Runs the chunk-size experiment. |
 
@@ -273,10 +274,29 @@ including chunk size and overlap, embedding model and device, retrieval
 mode, candidate counts, RRF settings, Ollama URL, temperature, seed,
 context length, character budget, and answer token limit.
 
-An optional web interface is available with `streamlit run app.py`. It
-calls the same `RAGPipeline.ask()` as the CLI and shows the answer,
-cited sources, retrieved passages with their scores, and the prompt. It
-runs on the local machine and has no authentication.
+### Web interface (optional)
+
+`app.py` is a Streamlit interface that calls the same
+`RAGPipeline.ask()` as the CLI. It shows the answer, cited sources,
+retrieved passages with their scores, and the prompt. A *Saved
+examples* view browses the 17 recorded runs and works without Ollama.
+
+On Windows, double-click `run_app.bat`, or run it from a terminal. It
+starts the app with the project's `.venv` Python. You can also start it
+directly:
+
+```bash
+.venv/Scripts/python.exe -m streamlit run app.py --server.address localhost
+```
+
+Use the `.venv` Python rather than a bare `streamlit` command. If
+another Python installation (such as Miniconda) has its own Streamlit
+on the `PATH`, a bare `streamlit run app.py` starts that one instead,
+and the app fails with `ModuleNotFoundError: No module named
+'rank_bm25'`.
+
+The app is meant for local demos. It has no authentication, so bind it
+to `localhost` as shown above.
 
 ## Evaluation
 
