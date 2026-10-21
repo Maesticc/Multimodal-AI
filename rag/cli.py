@@ -59,8 +59,6 @@ def cmd_retrieve(args) -> None:
 
 
 def _print_result(res: dict, show_context: bool) -> None:
-    from .retrieve import RetrievedChunk  # noqa: F401  (type only)
-
     print("\n" + "=" * 100)
     print("ANSWER:\n")
     print(textwrap.fill(res["answer"], 100, replace_whitespace=False))

@@ -1,231 +1,470 @@
-# RAG over Multimodal & Embodied AI Papers
+# RAG for Multimodal and Embodied AI Research Papers
 
-Technical Assessment, Option 1 (RAG Implementation). AI Research Engineer Intern, Multimodal AI.
+A local Retrieval-Augmented Generation (RAG) system for asking questions
+about four research papers. Each answer includes citations that point to
+the source paper, PDF page, and section.
 
-A local Retrieval-Augmented Generation system that answers questions about four research papers and cites the document, page and section of the evidence it used. It runs fully offline after setup: Ollama provides the LLM, sentence-transformers the embeddings and ChromaDB the vector store. No API keys are required.
+The system runs locally with Ollama for text generation,
+`sentence-transformers` for embeddings, and ChromaDB for vector storage.
+After the required models and papers have been downloaded, questions can
+be processed without external API keys.
 
-## 1. Document collection
+## Papers in the collection
 
-| doc_id | Paper | Venue | Pages | Chunks |
-|---|---|---|---|---|
-| `mmvp` | Eyes Wide Shut? Exploring the Visual Shortcomings of Multimodal LLMs (Tong et al.) | CVPR 2024 | 11 | 54 |
-| `hallusionbench` | HallusionBench: An Advanced Diagnostic Suite for Entangled Language Hallucination and Visual Illusion in LVLMs (Guan et al.) | CVPR 2024 | 11 | 55 |
-| `rt2` | RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control (Brohan et al.) | CoRL 2023, arXiv v1 | 26 | 90 |
-| `diffusion_policy` | Diffusion Policy: Visuomotor Policy Learning via Action Diffusion (Chi et al.) | RSS 2023 | 16 | 102 |
-| **Total** | 4 PDFs, ~5.5 MB, 64 pages, ~229k characters indexed | | **64** | **301** |
+| Document ID | Paper | Venue | Pages | Chunks |
+|---|---|---|---:|---:|
+| `mmvp` | *Eyes Wide Shut? Exploring the Visual Shortcomings of Multimodal LLMs* — Tong et al. | CVPR 2024 | 11 | 54 |
+| `hallusionbench` | *HallusionBench: An Advanced Diagnostic Suite for Entangled Language Hallucination and Visual Illusion in LVLMs* — Guan et al. | CVPR 2024 | 11 | 55 |
+| `rt2` | *RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control* — Brohan et al. | CoRL 2023, arXiv v1 | 26 | 90 |
+| `diffusion_policy` | *Diffusion Policy: Visuomotor Policy Learning via Action Diffusion* — Chi et al. | RSS 2023 | 16 | 102 |
+| **Total** | **4 PDFs** | | **64** | **301** |
 
-- **Source and permission:** all four papers are on the assessment reading list (P1, P5, P6, P8) and are publicly available from CVF Open Access, arXiv and the project page. URLs and versions are in [`data/sources.json`](data/sources.json). The PDFs are **not committed**; the script `scripts/download_data.py` fetches them. I checked that the downloaded files match the copies I indexed page for page (same page count and the same extracted text at the start of every page), so page citations stay valid.
-- **Why this collection:** two multimodal benchmark papers (MMVP and HallusionBench, which both evaluate GPT-4V) and two embodied-AI policy papers (RT-2 and Diffusion Policy). The overlap in vocabulary (diffusion, VLMs, benchmarks, "tokens", "Hz") makes retrieval non-trivial, and it allows cross-document questions.
-- **File type:** born-digital PDF (text layer, no OCR needed). Figures, tables and equations come out only as flattened text (see Limitations).
+The papers cover two related areas: multimodal model evaluation (MMVP
+and HallusionBench) and embodied AI policies (RT-2 and Diffusion
+Policy). Their overlapping terminology makes cross-paper retrieval
+useful to test.
 
-## 2. Architecture
+The source URLs and versions are listed in
+[`data/sources.json`](data/sources.json). PDF files are not committed to
+the repository; they can be downloaded with `scripts/download_data.py`.
+The indexed copies were checked against the downloaded PDFs by comparing
+page counts and extracted text at the start of each page.
 
+The PDFs contain selectable text, so OCR is not required. However,
+tables, figures, and equations are not preserved as structured content
+during extraction. See [Known limitations](#known-limitations).
+
+## How it works
+
+The pipeline has two stages: indexing the papers and answering
+questions.
+
+### Indexing
+
+1. Read each PDF page with `pypdf`.
+2. Detect section headings and attach section metadata to the extracted
+   text.
+3. Split text into chunks of about 1,000 characters, with roughly 200
+   characters of overlap. Chunks do not cross page boundaries so each
+   citation maps to one PDF page.
+4. Create embeddings with `BAAI/bge-small-en-v1.5`.
+5. Store the vectors and metadata in ChromaDB, and prepare the BM25
+   index.
+
+### Question answering
+
+1. Encode the question and retrieve candidates with both dense search
+   and BM25.
+2. Combine the two ranked lists with Reciprocal Rank Fusion (RRF).
+3. Send the top five passages, with their paper titles, page numbers,
+   and section names, to the local LLM.
+4. Generate a short answer with inline citation markers such as `[1]`.
+5. Match those markers back to the passages supplied to the model, then
+   return the source metadata.
+
+```text
+PDFs
+  └─ pypdf page extraction
+       └─ section detection and chunking
+            ├─ BM25 index
+            └─ BGE embeddings → ChromaDB
+
+Question
+  ├─ Dense retrieval ─┐
+  └─ BM25 retrieval ──┴─ RRF → top passages
+                                  └─ Ollama LLM
+                                       └─ Answer + source citations
 ```
-            ingest (offline, once)                              query (online)
- ┌──────────────────────────────────────────┐   ┌──────────────────────────────────────────────────┐
- data/*.pdf                                     question
-   │ pypdf, page by page                          │
-   ▼                                              ├─► dense: bge-small query embedding ─► Chroma (cosine) ─┐ top-20
- page text ─► heading detection (section)         │                                                     ├─► RRF fusion ─► top-5
-   │          skip References                     └─► sparse: BM25 over title+section+text ─────────────┘ top-20
-   ▼                                                                                    │
- sentence split ─► pack ~1000 chars, 200 overlap,                     numbered context [1]..[5]  (≤ 6000 chars)
-                   never across pages                                 + title / page / section headers
-   │                                                                                    │
-   ▼                                                                                    ▼
- chunks.jsonl (text + metadata) ─► BM25                                llama3.2:3b via Ollama (temp 0, seed 42)
-   │                                                                                    │
-   └─► bge-small-en-v1.5 embeddings ─► ChromaDB                         answer with [n] ─► parse [n] ─► sources
-                                                                                        │   (doc, page, section, chunk_id)
-                                                                         logs/queries.jsonl (full prompt + scores)
-```
 
-| File | Role |
+## Project structure
+
+| File | Purpose |
 |---|---|
-| [`rag/config.py`](rag/config.py) | Every setting comes from env vars or `.env`, nothing is hard-coded |
-| [`rag/ingest.py`](rag/ingest.py) | PDF to page text to section-aware chunks with metadata |
-| [`rag/index.py`](rag/index.py) | Embeddings, ChromaDB persistence, `manifest.json` |
-| [`rag/retrieve.py`](rag/retrieve.py) | Dense, BM25 and hybrid (RRF) retrieval with per-retriever ranks and scores |
-| [`rag/generate.py`](rag/generate.py) | Prompt construction, context budget, Ollama client, citation parsing |
-| [`rag/pipeline.py`](rag/pipeline.py) | End-to-end `ask()`, JSONL logging, Markdown rendering |
-| [`rag/evaluate.py`](rag/evaluate.py), [`rag/examples.py`](rag/examples.py) | Labelled evaluation and saved example outputs |
-| [`rag/cli.py`](rag/cli.py) | Command-line interface |
+| [`rag/config.py`](rag/config.py) | Loads settings from environment variables and `.env`. |
+| [`rag/ingest.py`](rag/ingest.py) | Extracts PDF text and creates section-aware chunks with metadata. |
+| [`rag/index.py`](rag/index.py) | Creates embeddings, stores them in ChromaDB, and writes the index manifest. |
+| [`rag/retrieve.py`](rag/retrieve.py) | Runs dense, BM25, or hybrid retrieval and records ranks and scores. |
+| [`rag/generate.py`](rag/generate.py) | Builds the prompt, manages the context budget, calls Ollama, and parses citations. |
+| [`rag/pipeline.py`](rag/pipeline.py) | Connects the steps in `ask()`, logs queries, and formats answers as Markdown. |
+| [`rag/evaluate.py`](rag/evaluate.py) | Evaluates retrieval against labelled questions. |
+| [`rag/examples.py`](rag/examples.py) | Regenerates the saved example outputs. |
+| [`rag/cli.py`](rag/cli.py) | Provides the command-line interface. |
+| [`scripts/download_data.py`](scripts/download_data.py) | Downloads the source PDFs. |
+| [`scripts/chunk_sweep.py`](scripts/chunk_sweep.py) | Runs the chunk-size experiment. |
 
-### 2.1 Ingestion
+## Retrieval details
 
-1. **Text extraction:** `pypdf` reads each page separately, so every chunk keeps a 1-based PDF page number. Ligatures are normalised (NFKC) and words hyphenated across line breaks are re-joined (`rea-\nsoning` becomes `reasoning`).
-2. **Section names:** each line is tested against a heading regex: numbered (`2.1. Finding CLIP-blind Pairs`), roman (`IV. INTRIGUING PROPERTIES`), appendix letters (`D. Hyperparameters`) and named headings (`Abstract`, `Limitations`). Filters reject false positives such as list items, affiliations and table rows. Small-caps headings that extract as `I NTRODUCTION` are repaired. The current section carries across pages. Detected sections were inspected by hand for all four papers.
-3. **References are skipped:** text after a `References` heading is dropped until an appendix heading appears (`RAG_INCLUDE_REFERENCES=true` to keep it). Bibliographies match many query terms but answer nothing.
-4. **Chunking:** sentences are packed greedily into ~1000-character chunks with ~200 characters of sentence-level overlap. A chunk **never crosses a page boundary**, so each one has exactly one page to cite. A section change starts a new chunk once the current chunk has at least 300 characters. Fragments under 50 characters (stray figure labels) are dropped.
-5. **Metadata per chunk:** `chunk_id` (`rt2:p5:c23` = document, page, running index), `doc_id`, title, file, page, section and text.
+### Dense retrieval
 
-### 2.2 Retrieval
+Dense retrieval uses
+[`BAAI/bge-small-en-v1.5`](https://huggingface.co/BAAI/bge-small-en-v1.5),
+a 33-million-parameter embedding model that produces 384-dimensional
+vectors. The query is given the retrieval instruction recommended by the
+model card; document passages are not. ChromaDB stores the vectors
+locally and uses cosine distance for similarity search.
 
-- **Dense:** [`BAAI/bge-small-en-v1.5`](https://huggingface.co/BAAI/bge-small-en-v1.5) (33M params, 384-dim, normalised). Queries get the BGE retrieval instruction prefix and passages do not, as the model card recommends. ChromaDB with HNSW and cosine distance.
-- **Sparse:** BM25 (`rank-bm25`, Okapi) over `title + section + text`, with a small stop-word list. It catches exact identifiers such as `DDIM`, `Pct. Diff` and `RT-2-PaLI-X-55B`.
-- **Hybrid (default):** top-20 from each retriever, fused with Reciprocal Rank Fusion, `score = Σ 1/(60 + rank)`. RRF uses ranks only, so cosine and BM25 scores never need to be calibrated against each other.
-- **Settings:** `top_k=5` passages go to the LLM. Every result records its dense rank and cosine score, its BM25 rank and score, and the fused score. They appear in `--show-context`, `retrieve`, `logs/queries.jsonl` and `examples/outputs/answers.md`.
+### Keyword retrieval with BM25
 
-### 2.3 Generation and context limits
+BM25 uses `rank-bm25` with the Okapi variant. It searches the paper
+title, section name, and chunk text. This helps retrieve passages
+containing exact terms and identifiers such as `DDIM`, `Pct. Diff`, and
+`RT-2-PaLI-X-55B`.
 
-- The system prompt (in [`generate.py`](rag/generate.py)) tells the model to use **only** the numbered passages, cite `[n]` after each claim, answer in at most 6 sentences, copy numbers exactly, and reply with the fixed sentence `I cannot answer this from the provided documents.` when the evidence is insufficient.
-- Each passage is shown as `[n] (source: <title> | page <p> | section: <s>)` followed by its text, in retrieval order.
-- **Context budget:** at most 6000 characters of passages (~1500 tokens). Whole passages are dropped from the lowest-ranked end, never cut mid-passage. Only the top passage may be truncated, and only if it alone exceeds the budget. With `num_ctx=4096` this leaves room for the system prompt, the question and a 512-token answer. In the saved runs all 5 passages always fit (4,360–5,584 context characters, 1,128–1,641 prompt tokens).
-- **Deterministic decoding:** temperature 0 and seed 42.
+### Hybrid retrieval
 
-### 2.4 Source attribution
+The default mode retrieves the top 20 candidates from each retriever and
+combines their rankings with Reciprocal Rank Fusion:
 
-The `[n]` markers in the answer are parsed back to the passages that were actually in the prompt, giving `title, file, page, section, chunk_id` for each one. Sources are therefore derived from the evidence the model saw, not generated by the model. Numbers that match no passage (for example, the 3B model copying a paper's own `[12, 15, 29]` references) are reported as `invalid_citations` instead of being silently mapped.
+`score = Σ 1 / (60 + rank)`
 
-## 3. Models and why
+RRF combines ranks rather than raw scores, so the cosine and BM25 scores
+do not need to be calibrated against each other. The five highest-ranked
+passages are passed to the LLM by default.
 
-| Component | Exact version | Why |
+The retrieval output includes each candidate's dense rank and cosine
+score, BM25 rank and score, and fused score. These details are available
+through `--show-context`, the `retrieve` command, and
+`logs/queries.jsonl`.
+
+## Text extraction and chunking
+
+- **Page-level extraction:** Each page is processed separately, and
+  the original one-based PDF page number is stored in the metadata.
+- **Text cleanup:** Unicode text is normalised with NFKC, and words
+  split by a line-break hyphen are rejoined where possible.
+- **Section detection:** The heading detector handles numbered
+  headings, Roman numerals, appendix letters, and headings such as
+  `Abstract` and `Limitations`. It filters common false positives and
+  repairs some headings extracted with spaced small caps. The detected
+  sections were checked manually for these four papers.
+- **References:** Text after a `References` heading is skipped until
+  an appendix heading is found. Set `RAG_INCLUDE_REFERENCES=true` to
+  include references.
+- **Chunk size:** Sentences are packed into chunks of about 1,000
+  characters with about 200 characters of overlap. A chunk stays
+  within one page. A section change starts a new chunk once the
+  current chunk has at least 300 characters, and fragments shorter
+  than 50 characters are dropped.
+- **Metadata:** Each chunk stores `chunk_id`, `doc_id`, title,
+  filename, page, section, and text. For example, `rt2:p5:c23`
+  identifies a chunk from document `rt2`, page 5.
+
+## Answer generation and citations
+
+The generation prompt instructs the model to:
+
+- Use only the retrieved passages to answer.
+- Add a citation marker such as `[1]` after each supported claim.
+- Keep answers to six sentences or fewer.
+- Copy numerical values exactly.
+- Respond with `I cannot answer this from the provided documents.`
+  when the passages do not contain enough evidence.
+
+Each passage is labelled with its title, page, and section. The context
+budget is 6,000 characters, approximately 1,500 tokens. Passages are
+removed from the lowest-ranked end if the budget is exceeded; a passage
+is only truncated if it alone is longer than the budget. The generation
+context uses `num_ctx=4096`, leaving room for the system prompt,
+question, and an answer of up to 512 tokens. In the saved runs, all five
+passages fit within the budget.
+
+Generation uses temperature `0` and seed `42`. Citation markers are
+mapped back to the passages included in the prompt. Each source record
+contains the title, filename, page, section, and chunk ID. Citation
+numbers that do not match a supplied passage are recorded as
+`invalid_citations` rather than being assigned to a source.
+
+## Models and dependencies
+
+| Component | Version | Reason for use |
 |---|---|---|
-| LLM | `llama3.2:3b` on Ollama 0.40.6 (3.2B params, Q4_K_M, digest `a80c4f17acd5`) | Free and local. It fits the 4 GB VRAM of my RTX 3050 laptop GPU (Ollama reports 2.9 GB loaded, 80% GPU / 20% CPU). It follows instructions well enough for cited answers at ~4–8 s per question once loaded (the first query after a cold start took ~28 s). A 7–8B model would mostly spill to CPU on this card. |
-| Embeddings | `BAAI/bge-small-en-v1.5` via sentence-transformers 6.1.0 | Strong small English retrieval model. It runs on CPU so it does not compete with the LLM for the 4 GB of VRAM, and indexing 301 chunks takes ~2 minutes on CPU. |
-| Vector store | ChromaDB 1.5.9 (persistent, local) | Free, file-based, no server, and stores metadata next to the vectors. |
-| Sparse | rank-bm25 0.2.2 | Exact-term matching that the small dense model misses. |
-| PDF | pypdf 6.21.1 | Pure Python, page-level extraction. |
+| LLM | `llama3.2:3b` through Ollama 0.40.6; Q4_K_M quantisation | Runs locally and fits the project's 4 GB VRAM GPU. |
+| Embeddings | `BAAI/bge-small-en-v1.5` with `sentence-transformers` 6.1.0 | Small English retrieval model; runs on CPU so it does not compete with the LLM for GPU memory. |
+| Vector store | ChromaDB 1.5.9 | Local persistent storage for vectors and metadata. |
+| Sparse retrieval | `rank-bm25` 0.2.2 | Keyword-based ranking for exact terms. |
+| PDF extraction | `pypdf` 6.21.1 | Extracts text one page at a time. |
 
-Any Ollama model can be used by changing `RAG_LLM_MODEL` (for example `qwen2.5:3b`), with no code change. The saved outputs were produced with the settings above.
+The tested setup uses Python 3.13.12 on Windows 11 and an NVIDIA RTX
+3050 Laptop GPU with 4 GB VRAM. Ollama reports about 2.9 GB loaded, with
+roughly 80% GPU and 20% CPU use. Once the model is loaded, a question
+typically takes around 4–8 seconds; the first question after a cold
+start took about 28 seconds in the recorded run. A larger 7B–8B model
+would be more likely to spill onto the CPU with this GPU.
 
-## 4. Setup
+A GPU is optional. The system can run on CPU, but generation will be
+slower and may take tens of seconds per question. Allow around 3 GB of
+disk space for the LLM.
 
-**Requirements:** Python 3.11+ (tested on 3.13.12, Windows 11), ~3 GB disk for the model, ~4 GB RAM. A GPU is optional: on CPU only, Ollama still works, just slower (expect tens of seconds per answer). Tested on an NVIDIA RTX 3050 Laptop GPU with 4 GB.
+The LLM can be changed through `RAG_LLM_MODEL` (for example,
+`qwen2.5:3b`) without changing the application code. The results below
+were produced using the versions listed in this section.
 
-Setup takes five steps:
+## Setup
 
-1. Create a Python virtual environment and install the pinned packages from [`requirements.txt`](requirements.txt).
-2. Install Ollama from [ollama.com/download](https://ollama.com/download) and pull the `llama3.2:3b` model.
-3. Put the four PDFs in `data/`, or let `scripts/download_data.py` download them.
-4. Optionally copy [`.env.example`](.env.example) to `.env` to change settings. The defaults work without it.
-5. Build the index with the `ingest` command of the `rag` package. It takes ~2 minutes on CPU, and the embedding model is downloaded on the first run.
+1. Create a Python virtual environment and install the pinned
+   dependencies:
 
-## 5. Usage
+   ```bash
+   python -m venv .venv
+   ```
 
-The `rag` package is run as a Python module and has these commands:
+   Activate the environment, then run:
 
-| Command | What it does |
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. Install [Ollama](https://ollama.com/download), then download the
+   model:
+
+   ```bash
+   ollama pull llama3.2:3b
+   ```
+
+3. Add the four PDFs to `data/`, or download them using the project
+   script:
+
+   ```bash
+   python scripts/download_data.py
+   ```
+
+4. Optionally copy [`.env.example`](.env.example) to `.env` and adjust
+   the settings. The defaults can be used without this file.
+
+5. Build the index:
+
+   ```bash
+   python -m rag ingest
+   ```
+
+The first indexing run downloads the embedding model if it is not
+already available. Indexing the 301 chunks took about two minutes on CPU
+in the tested environment.
+
+## Usage
+
+Run the package as a Python module:
+
+| Command | Description |
 |---|---|
-| `ingest` | Builds the vector index from `data/*.pdf` |
-| `ask` | Answers one question with cited sources. Options can show the retrieved passages, switch the retrieval mode, change `top_k` or print the full JSON record |
-| `retrieve` | Retrieval only, without the LLM |
-| `chat` | Interactive question loop |
-| `info` | Shows the settings, the index manifest and the exact model and digest |
-| `eval` | Retrieval evaluation: dense vs BM25 vs hybrid |
-| `examples` | Regenerates `examples/outputs/answers.md` |
+| `python -m rag ingest` | Builds the vector index from `data/*.pdf`. |
+| `python -m rag ask "your question"` | Answers one question and includes source citations. |
+| `python -m rag retrieve "your question"` | Shows retrieved passages without calling the LLM. |
+| `python -m rag chat` | Starts an interactive question loop. |
+| `python -m rag info` | Displays settings, index manifest, and model details. |
+| `python -m rag eval` | Evaluates dense, BM25, and hybrid retrieval. |
+| `python -m rag examples` | Regenerates `examples/outputs/answers.md`. |
 
-The chunk-size experiment is in `scripts/chunk_sweep.py`.
+The `ask` command supports options for displaying retrieved context,
+selecting a retrieval mode, changing `top_k`, and printing the full JSON
+record. Run a command with `--help` to see the available options.
 
-Every question is appended to `logs/queries.jsonl`, together with the full prompt, all retrieved passages and their scores, and the token counts and latency.
+The chunk-size experiment can be run with:
 
-Configuration lives in [`.env.example`](.env.example). It covers paths, chunk size and overlap, embedding model and device, retrieval mode, `top_k`, `candidate_k`, `rrf_k`, the LLM provider and model, the Ollama URL, temperature, seed, `num_ctx`, the context character budget and the answer token limit.
+```bash
+python scripts/chunk_sweep.py
+```
 
-## 6. Results
+Each question is appended to `logs/queries.jsonl`, including the prompt,
+retrieved passages and their scores, token counts, and latency.
+Configuration options are documented in [`.env.example`](.env.example),
+including chunk size and overlap, embedding model and device, retrieval
+mode, candidate counts, RRF settings, Ollama URL, temperature, seed,
+context length, character budget, and answer token limit.
 
-All outputs are saved in [`examples/outputs/`](examples/outputs/), so the system's behaviour can be reviewed without running it:
+## Evaluation
 
-- [`answers.md`](examples/outputs/answers.md): 17 questions, each with its answer, cited sources and the retrieved passages (ranks, scores, text).
-- [`manual_review.md`](examples/outputs/manual_review.md): my check of every answer against its passages.
-- [`retrieval_eval.md`](examples/outputs/retrieval_eval.md) and [`chunk_sweep.md`](examples/outputs/chunk_sweep.md): retrieval metrics.
-- `answers.jsonl`: full records, including prompts.
+Saved outputs are available in [`examples/outputs/`](examples/outputs/):
 
-### 6.1 Evaluation set
+- [`answers.md`](examples/outputs/answers.md) — 17 questions,
+  answers, citations, and retrieved passages with ranks, scores, and
+  text.
+- [`manual_review.md`](examples/outputs/manual_review.md) — manual
+  checks of the answers against the retrieved evidence.
+- [`retrieval_eval.md`](examples/outputs/retrieval_eval.md) —
+  retrieval metrics.
+- [`chunk_sweep.md`](examples/outputs/chunk_sweep.md) — results from
+  the chunk-size experiment.
+- `answers.jsonl` — complete records, including prompts.
 
-[`examples/questions.json`](examples/questions.json) has 17 hand-written questions: 9 factual, 4 conceptual, 1 paraphrased (it avoids the paper's wording), 1 cross-document and 2 unanswerable. For each answerable question I labelled:
+### Test questions
 
-- the **pages** that contain the answer, and
-- **evidence strings** (for example `0.95` and `0.6`). A retrieved chunk counts as evidence only if its own text contains them. This label is independent of the chunk ids, so it works for any chunk size.
+[`examples/questions.json`](examples/questions.json) contains 17
+manually written questions: nine factual, four conceptual, one
+paraphrased, one cross-document, and two unanswerable. For answerable
+questions, the evaluation records the pages containing the answer and
+the evidence strings needed to verify it. A chunk counts as evidence
+only when its own text contains those strings.
 
-Labelling note: my first page labels were incomplete. Several facts are restated elsewhere in the paper (46.9% appears on pages 1, 2, 6, 7 and 15 of Diffusion Policy). I found this by searching every chunk for the answer strings, and fixed the labels before reporting any of the numbers below.
+The page labels were checked across the full set of chunks because some
+facts appear on more than one page. For example, `46.9%` appears on
+pages 1, 2, 6, 7, and 15 of the Diffusion Policy paper. The labels were
+updated after this check.
 
-### 6.2 Retrieval (default index: chunk 1000 / overlap 200)
+### Retrieval results
 
-| | Page-level (15 q) | | | | Chunk-level (14 q) | | | |
-|---|---|---|---|---|---|---|---|---|
-| mode | Hit@1 | Hit@3 | Hit@5 | MRR@5 | Hit@1 | Hit@3 | Hit@5 | MRR@5 |
-| dense | 0.60 | 0.87 | 0.93 | 0.724 | **0.57** | **0.86** | **0.86** | **0.714** |
+The default index uses 1,000-character chunks with 200 characters of
+overlap.
+
+| Mode | Page Hit@1 | Page Hit@3 | Page Hit@5 | Page MRR@5 | Chunk Hit@1 | Chunk Hit@3 | Chunk Hit@5 | Chunk MRR@5 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Dense | 0.60 | 0.87 | 0.93 | 0.724 | **0.57** | **0.86** | **0.86** | **0.714** |
 | BM25 | 0.53 | 0.93 | 1.00 | 0.717 | 0.50 | 0.71 | 0.79 | 0.613 |
-| hybrid (default) | 0.53 | **1.00** | **1.00** | **0.744** | 0.43 | 0.79 | 0.86 | 0.621 |
+| Hybrid (default) | 0.53 | **1.00** | **1.00** | **0.744** | 0.43 | 0.79 | 0.86 | 0.621 |
 
-*Page-level:* a retrieved chunk comes from a page that contains the answer. *Chunk-level:* a retrieved chunk itself contains the answer. Chunk-level is what the LLM actually needs.
+Page-level metrics count a result as a hit if it comes from a page
+containing the answer. Chunk-level metrics require the retrieved chunk
+itself to contain the answer. Chunk-level retrieval is more directly
+relevant to generation because the LLM only receives the retrieved
+passages.
 
-What this shows:
+The results do not establish that one retrieval mode is universally
+better. Hybrid retrieval achieved the best page-level Hit@3 and Hit@5,
+while dense retrieval matched or outperformed it across the reported
+chunk-level metrics. BM25 can rank a nearby chunk from the correct page
+above the chunk containing the actual answer, and RRF can carry that
+ranking into the combined results. Hybrid remains the default because it
+retrieved the relevant page for every evaluated question at Hit@3 and is
+useful for exact-identifier queries. The evaluation set is small: one
+question changes Hit@k by roughly 0.07.
 
-- **The metric changes the conclusion.** At page level, hybrid looks best (Hit@3 = 1.00). At chunk level, dense alone is as good or better on every column. BM25 often ranks a *neighbouring* chunk on the right page (same rare terms) above the chunk that actually holds the number, and RRF inherits that. I kept hybrid as the default because it never misses the relevant page and it is more robust to exact-identifier queries. With 14–15 questions, though, one question moves Hit@k by ~0.07, so I would not claim either mode is better from this data.
-- **Both chunk-level misses (q01, q14) are the same failure type:** the answer sits in a chunk dominated by table or figure text. For q14, the Robomimic chunk is mostly a flattened task table and ranks 20th in hybrid and 55th in dense. Raising `top_k` to 10 recovers q01 (rank 9) but not q14.
+Both chunk-level misses (`q01` and `q14`) involve content dominated by
+table or figure text. For `q14`, the RoboMimic chunk is mostly flattened
+task-table content and ranked 20th with hybrid retrieval and 55th with
+dense retrieval. Raising `top_k` to 10 recovered `q01` at rank 9, but
+did not recover `q14`.
 
-### 6.3 End-to-end answers (manual review, 17 questions)
+### Answer review
+
+The manual review covered all 17 questions.
 
 | Outcome | Questions |
 |---|---|
-| Correct and grounded | q02, q04, q05, q06, q07, q08, q10, q11, q12, q13 (10/15) |
-| Correct facts, one mis-attributed citation | q09 |
-| **Retrieval failure:** evidence chunk not in top-5, model correctly said it was not stated | q01, q14 |
-| **Generation failure:** evidence was in the prompt | q03 (mixed up Table 2 and Table 3: an extra wrong "6.5%"), q15 (read "models *except* GPT-4V scored below random" as GPT-4V scoring below random) |
-| Unanswerable | q17 abstained ✓. q16 ✗: abstained on the learning rate, then invented "batch size 8" from an unrelated hyperparameter table |
+| Correct and grounded | `q02`, `q04`, `q05`, `q06`, `q07`, `q08`, `q10`, `q11`, `q12`, `q13` (10 of 15 answerable questions) |
+| Correct facts, one citation attributed incorrectly | `q09` |
+| Retrieval failure: evidence was not in the top five, so the model said it was not stated | `q01`, `q14` |
+| Generation failure despite evidence being present | `q03` (mixed up Table 2 and Table 3 and added an incorrect `6.5%`); `q15` (misread the statement about models scoring below random) |
+| Unanswerable | `q17` correctly abstained; `q16` incorrectly added `batch size 8` from an unrelated hyperparameter table after abstaining on the learning rate |
 
-**Works well:** single-fact lookups where the fact sits in prose (counts, percentages, latencies, named metrics), definitions and stated limitations. Answers are short, cite the right page, and copy numbers exactly.
+The system works best for direct lookups where the answer appears in
+prose, including counts, percentages, latency figures, named metrics,
+definitions, and stated limitations. Answers are short and generally
+cite the correct page.
 
-**Struggles:** (1) facts that live in tables or figures, at both retrieval and reading time; (2) passages with negation or scope ("except", "smaller version of"); (3) partial abstention: the model sees *a* learning rate and batch size and attaches them to the wrong model; (4) it sometimes copies the paper's own reference brackets as citations.
+The main problems are table- and figure-based facts, statements
+involving negation or scope (such as "except"), partial abstention, and
+citation markers copied from the papers' own references. The automatic
+string check accepted or partly accepted some incorrect answers. Manual
+review caught the extra claim in `q03`, the interpretation error in
+`q15`, and the unsupported batch-size claim in `q16`. A check that only
+looks for the right number measures whether an answer contains expected
+text; it does not establish that the answer is faithful to the source.
 
-The automatic string check in `answers.md` marked q03, q15 and q16's partial answer as acceptable or only partly wrong. Only the manual review caught the wrong extra claims. A cheap "contains the right number" check measures recall, not faithfulness.
+### Chunk-size experiment
 
-## 7. Exploration: chunk size
+The index was rebuilt with chunk sizes of 500, 1,000, and 1,500
+characters while keeping the other settings fixed. The overlap was set
+to 20% of each chunk size.
 
-**Question:** does chunk size explain the table-heavy misses, and is 1000 characters a reasonable default?
-**Method:** rebuilt the index at 500, 1000 and 1500 characters (overlap 20%), everything else fixed, and measured both metrics on the same questions ([`chunk_sweep.md`](examples/outputs/chunk_sweep.md)).
-
-| chunk size | chunks | dense chunk-Hit@5 | hybrid chunk-Hit@5 | hybrid chunk-MRR@5 | hybrid page-Hit@1 |
-|---|---|---|---|---|---|
+| Chunk size | Number of chunks | Dense Chunk Hit@5 | Hybrid Chunk Hit@5 | Hybrid Chunk MRR@5 | Hybrid Page Hit@1 |
+|---:|---:|---:|---:|---:|---:|
 | 500 | 540 | 0.57 | 0.79 | 0.556 | 0.80 |
-| 1000 | 301 | 0.86 | 0.86 | 0.621 | 0.53 |
-| 1500 | 224 | 0.93 | 0.86 | 0.726 | 0.73 |
+| 1,000 | 301 | 0.86 | 0.86 | 0.621 | 0.53 |
+| 1,500 | 224 | 0.93 | 0.86 | 0.726 | 0.73 |
 
-**Findings:**
+Chunks of 500 characters performed worse on chunk-level retrieval, even
+though their page-level Hit@1 was higher. Small chunks sometimes
+separated facts needed to answer one question, such as "346 images" and
+"1129 questions." This is another example of why page-level metrics
+alone can be misleading.
 
-- **500 characters is clearly worse at chunk level** (dense 0.57 vs 0.86) even though its page-level Hit@1 is the highest. Small chunks often split a question's two facts (for example "346 images" and "1129 questions") across chunks, and they find the right page without the full answer. This is the clearest case where page-level metrics mislead.
-- **1500 versus 1000 is a small difference, not a clear win.** It is about one question on several metrics. It also sends ~1.5× more text per passage, so five full-size passages can exceed the 6000-character budget, in which case the lowest-ranked one is dropped.
-- I kept **1000** as the default. I did not re-run generation at 1500, so I have **no evidence about answer quality** at that size.
+The difference between 1,000 and 1,500 characters is less conclusive.
+The changes amount to roughly one question on several metrics, and
+larger passages use more of the available context budget. Five full-size
+passages can exceed 6,000 characters, causing lower-ranked passages to
+be dropped. The default remains 1,000 characters. Generation was not
+rerun with 1,500-character chunks, so this experiment does not show
+whether that size improves answer quality.
 
-## 8. Design decisions and trade-offs
+## Design choices
 
-- **Page-bounded chunks:** citations are always exactly one page. The cost is that sentences spanning a page break are split and some chunks are short.
-- **Character-based sizes instead of tokens:** simple and model-independent. 1000 characters is roughly 250 tokens for this text.
-- **Hybrid with RRF instead of a weighted score sum:** no score calibration needed. The trade-off, measured in 6.2, is that BM25 can promote neighbouring chunks.
-- **No reranker or query rewriting:** I wanted a baseline whose every step I can trace and explain. These are listed as next steps instead.
-- **3B LLM:** constrained by 4 GB of VRAM. Section 6.3 shows its failure modes are mostly reading precision (tables, negation), which is expected to improve with a larger model, but I have not tested that.
-- **Abstention is prompt-only:** no retrieval-score threshold, because the score distributions for answerable and unanswerable questions overlap on this small set (q16's top passage is a genuinely relevant-looking hyperparameter table).
+- **Keep chunks within page boundaries.** This makes page citations
+  precise, but can split a sentence at a page break and produce
+  shorter chunks.
+- **Use character counts for chunking.** This keeps chunk sizing
+  simple and independent of a specific tokenizer. For these papers,
+  1,000 characters is roughly 250 tokens.
+- **Combine rankings with RRF.** No score calibration is needed,
+  though BM25 can promote a neighbouring chunk over the chunk that
+  contains the answer.
+- **Skip reranking and query rewriting for now.** The current pipeline
+  provides a baseline that is straightforward to inspect. Both are
+  possible next steps.
+- **Use a 3B model.** The tested GPU has 4 GB of VRAM. The evaluation
+  points to reading precision—especially tables and negation—as a
+  major source of errors. A larger model might help, but that has not
+  been tested.
+- **Use prompt-based abstention.** There is no retrieval-score
+  threshold because the score distributions for answerable and
+  unanswerable questions overlap in this small test set. In `q16`, for
+  example, the top passage looked relevant but contained
+  hyperparameters for a different setting.
 
-## 9. Known limitations
+## Known limitations
 
-- **Tables and figures** are extracted as flattened text (`Lift 1 1 7 200 300 400 Yes No ...`). These chunks embed poorly and the 3B model reads them unreliably. Figure-only content (plots, diagrams) is invisible to the system. This is the main gap for a *multimodal* paper collection.
-- **Extraction noise:** icon glyphs appear as text (`/sync`, `♂search` in the MMVP pattern list), and some words in RT-2 lose their spaces (`althoughweshowthat`).
-- **Heading detection is heuristic.** It was checked by eye on these four papers, and other layouts may need regex changes.
-- **Small evaluation set** (15 answerable questions, labelled by me alone). The metrics show tendencies and are not statistically meaningful differences.
-- **Answer correctness was judged manually by one person.** The automatic check is string matching only.
-- **English only,** and a single-turn CLI with no conversation memory.
+- **Tables and figures:** They are extracted as flattened text, for
+  example `Lift 1 1 7 200 300 400 Yes No ...`. These chunks are
+  difficult to retrieve reliably, and the 3B model may misread them.
+  Information contained only in plots or diagrams is not available to
+  the system.
+- **Extraction noise:** Some icon glyphs appear as text (such as
+  `/sync` and `♂search` in the MMVP pattern list), and some words in
+  RT-2 lose their spaces (for example, `althoughweshowthat`).
+- **Heading detection:** The heading rules were checked on these four
+  papers. Other PDF layouts may require changes to the detection
+  patterns.
+- **Small evaluation set:** There are 15 answerable questions,
+  labelled by one person. The metrics are useful for identifying
+  possible trends, but the differences are not statistically
+  conclusive.
+- **Manual answer review:** Answer correctness was reviewed by one
+  person. The automatic evaluation uses string matching and cannot
+  reliably detect unsupported claims.
+- **English and single-turn use:** The current interface is an
+  English-language command-line tool without conversation memory.
 
-## 10. What I would investigate next
+## Next steps
 
-1. **Table-aware ingestion,** since it is the cause of both retrieval misses. Extract tables separately (for example with `pdfplumber` or a layout model), store them as their own chunks with a caption-based description, and measure chunk-level Hit@5 on q01 and q14 plus new table-specific questions.
-2. **A cross-encoder reranker** (for example `bge-reranker-base`) over the hybrid top-20. This tests whether the "right page, wrong chunk" errors in 6.2 come from first-stage ranking.
-3. **A faithfulness check:** an automatic claim-versus-passage verification (NLI or an LLM judge), validated against my manual labels, to catch q03/q15-style errors that the string check misses.
-4. **A model comparison** with retrieval held fixed (`llama3.2:3b` vs `qwen2.5:3b` vs an 8B model on CPU). This tests whether the generation errors are about model size, so retrieval and generation effects can be separated cleanly.
-5. **A larger, independently written question set,** so that differences of 0.07 become meaningful.
-
-## 11. Use of AI assistance
-
-> **TODO (author):** edit this section so it accurately describes your own process before you submit.
-
-This project was built with an AI coding assistant (Kiro). The assistant drafted most of the code, the evaluation scripts and this README, based on my requirements and the assessment brief. I reviewed and ran the pipeline, and the results reported here come from those runs. <!-- Describe what you checked, changed or wrote yourself, e.g. reading every answer against its passages, verifying the question labels, choosing the default settings. -->
+1. **Improve table extraction.** Extract tables separately with a tool
+   such as `pdfplumber` or a layout model. Store them as separate
+   chunks with descriptions based on their captions, then measure
+   chunk-level Hit@5 on `q01`, `q14`, and additional table-focused
+   questions.
+2. **Add a reranker.** Test a cross-encoder such as `bge-reranker-base`
+   on the hybrid top 20 to see whether it improves the first-stage
+   ranking.
+3. **Check answer faithfulness.** Evaluate claims against their
+   supporting passages with NLI or an LLM-based judge, and compare the
+   results with manual labels.
+4. **Compare generation models.** Keep retrieval fixed and compare
+   `llama3.2:3b`, `qwen2.5:3b`, and an 8B model running on CPU. This
+   would help separate retrieval problems from generation problems.
+5. **Expand the evaluation set.** Add more independently written
+   questions so that small differences in Hit@k are easier to
+   interpret.
 
 ## References
 
-- Tong et al., *Eyes Wide Shut? Exploring the Visual Shortcomings of Multimodal LLMs*, CVPR 2024. arXiv:2401.06209
-- Guan et al., *HallusionBench*, CVPR 2024. arXiv:2310.14566
-- Brohan et al., *RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control*, CoRL 2023. arXiv:2307.15818
-- Chi et al., *Diffusion Policy: Visuomotor Policy Learning via Action Diffusion*, RSS 2023. arXiv:2303.04137
-- Cormack, Clarke, Büttcher, *Reciprocal Rank Fusion outperforms Condorcet and individual rank learning methods*, SIGIR 2009.
-- Xiao et al., *C-Pack: Packaged Resources To Advance General Chinese Embedding* (BGE models), 2023. arXiv:2309.07597
-- Robertson & Zaragoza, *The Probabilistic Relevance Framework: BM25 and Beyond*, 2009.
+- Tong et al., *Eyes Wide Shut? Exploring the Visual Shortcomings of
+  Multimodal LLMs*, CVPR 2024. arXiv:2401.06209.
+- Guan et al., *HallusionBench*, CVPR 2024. arXiv:2310.14566.
+- Brohan et al., *RT-2: Vision-Language-Action Models Transfer Web
+  Knowledge to Robotic Control*, CoRL 2023. arXiv:2307.15818.
+- Chi et al., *Diffusion Policy: Visuomotor Policy Learning via Action
+  Diffusion*, RSS 2023. arXiv:2303.04137.
+- Cormack, Clarke, and Büttcher, "Reciprocal Rank Fusion outperforms
+  Condorcet and individual rank learning methods," SIGIR 2009.
+- Xiao et al., "C-Pack: Packaged Resources To Advance General Chinese
+  Embedding" (BGE models), 2023. arXiv:2309.07597.
+- Robertson and Zaragoza, "The Probabilistic Relevance Framework: BM25
+  and Beyond," 2009.

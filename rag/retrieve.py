@@ -9,7 +9,7 @@ do not need to be calibrated against each other.
 from __future__ import annotations
 
 import re
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 
 from rank_bm25 import BM25Okapi
 
@@ -38,13 +38,9 @@ class RetrievedChunk:
     dense_score: float | None = None  # cosine similarity
     bm25_rank: int | None = None
     bm25_score: float | None = None
-    extra: dict = field(default_factory=dict)
 
-    def to_dict(self, max_chars: int | None = None) -> dict:
-        d = asdict(self)
-        if max_chars is not None and len(d["chunk"]["text"]) > max_chars:
-            d["chunk"]["text"] = d["chunk"]["text"][:max_chars] + " ..."
-        return d
+    def to_dict(self) -> dict:
+        return asdict(self)
 
 
 class Retriever:
